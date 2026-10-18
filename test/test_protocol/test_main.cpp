@@ -124,11 +124,13 @@ void test_problem_parser_rejects_malformed_tokens()
 
 void test_snake_coordinates_and_above_hold_mapping()
 {
+    TEST_ASSERT_EQUAL_STRING("K12", positionToCoordinates(131, 12).c_str());
     TEST_ASSERT_EQUAL_STRING("A1", positionToCoordinates(0, 18).c_str());
     TEST_ASSERT_EQUAL_STRING("A18", positionToCoordinates(17, 18).c_str());
     TEST_ASSERT_EQUAL_STRING("B18", positionToCoordinates(18, 18).c_str());
     TEST_ASSERT_EQUAL_STRING("B1", positionToCoordinates(35, 18).c_str());
     TEST_ASSERT_EQUAL_STRING("C1", positionToCoordinates(36, 18).c_str());
+    TEST_ASSERT_EQUAL_STRING("K18", positionToCoordinates(197, 18).c_str());
 
     TEST_ASSERT_EQUAL_INT(1, aboveHoldPosition(0, 18));
     TEST_ASSERT_EQUAL_INT(-1, aboveHoldPosition(17, 18));

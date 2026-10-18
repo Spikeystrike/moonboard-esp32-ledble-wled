@@ -7,7 +7,7 @@
 
 #include "bridge_types.h"
 
-constexpr size_t MAX_LOGICAL_LED_COUNT = 200;
+constexpr size_t MAX_LOGICAL_LED_COUNT = 198;
 constexpr size_t MAX_KICKER_LED_COUNT = 64;
 constexpr size_t MAX_WLED_HOST_LENGTH = 64;
 constexpr uint16_t MAX_PHYSICAL_LED_COUNT = 2048;

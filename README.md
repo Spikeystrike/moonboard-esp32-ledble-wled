@@ -55,8 +55,8 @@ rebuilding the firmware.
 The two fixed build environments select the layout at compile time:
 
 ```text
-olimex-esp32-poe-iso           MoonBoard Mini (default)
-olimex-esp32-poe-iso-standard  MoonBoard Standard
+olimex-esp32-poe-iso           MoonBoard Mini: 132 positions, A1-K12 (default)
+olimex-esp32-poe-iso-standard  MoonBoard Standard: 198 positions, A1-K18
 ```
 
 Switching between Mini and Standard still requires a rebuild because the BLE
@@ -81,6 +81,13 @@ the first start, when saved data is incomplete, or when the selected board
 layout changes. Merely editing `config.h` and reflashing does not overwrite an
 existing compatible NVS configuration.
 
+Firmware `1.4.0` corrects the logical position count from 150 to 132 for Mini
+and from 200 to 198 for Standard. Settings saved by an older version therefore
+have an incompatible mapping size and the firmware uses its defaults once
+after this update. Re-enter the installation settings and save them again; an
+older JSON backup must likewise be corrected to the new position count before
+it can be restored.
+
 The page has no login. It should only be reachable from a trusted local
 network.
 
@@ -94,7 +101,7 @@ automatic scrolling.
 
 All web pages use English by default. The flag button in the upper-right corner
 switches between English and German, and the choice is retained in the
-browser's local storage. The footer shows firmware version `1.3.0` and the
+browser's local storage. The footer shows firmware version `1.4.0` and the
 compile timestamp. The same information is available from `/api/config` and in
 the startup log, so the running version can be checked after an OTA restart.
 
