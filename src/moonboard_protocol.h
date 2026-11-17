@@ -15,6 +15,7 @@ struct ProtocolMessage
 {
     ProtocolMessageType type;
     std::string payload;
+    bool additionalLight = false;
 };
 
 struct MoonboardHold
@@ -32,6 +33,7 @@ public:
 private:
     bool configurationStarted_ = false;
     bool problemStarted_ = false;
+    bool pendingAdditionalLight_ = false;
     std::string configuration_;
     std::string problem_;
 };

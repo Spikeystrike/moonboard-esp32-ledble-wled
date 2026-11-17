@@ -49,11 +49,22 @@ bool MoonboardProtocolParser::feed(char value, ProtocolMessage &message)
 
     if (configurationStarted_)
     {
+        // Boardsesh sends the additional-light flag as `~Dl#...#`, without
+        // the normal `*` separator. Keep the flag with this route so an
+        // interrupted frame cannot enable it for a later, ordinary route.
+        if (value == 'l' && configuration_ == "~D")
+        {
+            reset();
+            pendingAdditionalLight_ = true;
+            return false;
+        }
+
         configuration_ += value;
         if (value == '*')
         {
             message.type = ProtocolMessageType::Configuration;
             message.payload = configuration_;
+            message.additionalLight = false;
             configuration_.clear();
             configurationStarted_ = false;
             return true;
@@ -67,6 +78,7 @@ bool MoonboardProtocolParser::feed(char value, ProtocolMessage &message)
         // boundary so a truncated first write cannot swallow the next route.
         problemStarted_ = false;
         problem_.clear();
+        pendingAdditionalLight_ = false;
         return false;
     }
 
@@ -81,8 +93,10 @@ bool MoonboardProtocolParser::feed(char value, ProtocolMessage &message)
 
         message.type = ProtocolMessageType::Problem;
         message.payload = problem_;
+        message.additionalLight = pendingAdditionalLight_;
         problem_.clear();
         problemStarted_ = false;
+        pendingAdditionalLight_ = false;
         return true;
     }
 
@@ -96,6 +110,7 @@ void MoonboardProtocolParser::reset()
 {
     configurationStarted_ = false;
     problemStarted_ = false;
+    pendingAdditionalLight_ = false;
     configuration_.clear();
     problem_.clear();
 }

@@ -297,7 +297,7 @@ void processConfiguration(const std::string &message)
     }
 }
 
-void processProblem(const std::string &message)
+void processProblem(const std::string &message, bool additionalLight)
 {
     appLogPrintf("[BLE] Problem: %s\n", message.c_str());
     calibrationLedActive = false;
@@ -334,7 +334,7 @@ void processProblem(const std::string &message)
         coordinates += positionToCoordinates(hold.position, BOARD_ROWS);
     }
 
-    if (ledAboveHoldEnabled)
+    if (ledAboveHoldEnabled || additionalLight)
     {
         const RgbColor aboveColor = scaleColor(
             COLOR_WHITE,
@@ -439,7 +439,7 @@ void maintainBle()
         if (message.type == ProtocolMessageType::Configuration)
             processConfiguration(message.payload);
         else
-            processProblem(message.payload);
+            processProblem(message.payload, message.additionalLight);
     }
 
     if (connectionChanged && !connected)

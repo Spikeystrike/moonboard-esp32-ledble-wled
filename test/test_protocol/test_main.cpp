@@ -59,6 +59,129 @@ void test_parser_emits_configuration_and_problem()
     TEST_ASSERT_EQUAL_STRING("S69,P82,E54", messages[1].payload.c_str());
 }
 
+void test_parser_accepts_compact_additional_led_prefix()
+{
+    MoonboardProtocolParser parser;
+    ProtocolMessage message;
+    TEST_ASSERT_FALSE(parser.feed('~', message));
+    TEST_ASSERT_FALSE(parser.feed('D', message));
+
+    TEST_ASSERT_FALSE(parser.feed('l', message));
+
+    for (char value : std::string("#S0,P35,E197"))
+        TEST_ASSERT_FALSE(parser.feed(value, message));
+
+    TEST_ASSERT_TRUE(parser.feed('#', message));
+    TEST_ASSERT_TRUE(message.type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S0,P35,E197", message.payload.c_str());
+    TEST_ASSERT_TRUE(message.additionalLight);
+
+    std::vector<MoonboardHold> holds;
+    TEST_ASSERT_TRUE(parseProblem(message.payload, holds));
+    TEST_ASSERT_EQUAL_UINT32(3, holds.size());
+    TEST_ASSERT_EQUAL_UINT16(0, holds[0].position);
+    TEST_ASSERT_EQUAL_UINT16(35, holds[1].position);
+    TEST_ASSERT_EQUAL_UINT16(197, holds[2].position);
+}
+
+void test_parser_keeps_compact_prefix_across_ble_fragments()
+{
+    MoonboardProtocolParser parser;
+    std::vector<ProtocolMessage> messages;
+    const std::vector<std::string> fragments = {
+        "~", "D", "l", "#S0,P", "35,E197", "#l#S1,E2#", "l#", "#"};
+
+    for (const std::string &fragment : fragments)
+    {
+        for (char value : fragment)
+        {
+            ProtocolMessage message;
+            if (parser.feed(value, message))
+                messages.push_back(message);
+        }
+    }
+
+    TEST_ASSERT_EQUAL_UINT32(3, messages.size());
+    TEST_ASSERT_TRUE(messages[0].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S0,P35,E197", messages[0].payload.c_str());
+    TEST_ASSERT_TRUE(messages[0].additionalLight);
+    TEST_ASSERT_TRUE(messages[1].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S1,E2", messages[1].payload.c_str());
+    TEST_ASSERT_FALSE(messages[1].additionalLight);
+    TEST_ASSERT_TRUE(messages[2].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("", messages[2].payload.c_str());
+    TEST_ASSERT_FALSE(messages[2].additionalLight);
+}
+
+void test_parser_discards_compact_prefix_when_route_is_replaced()
+{
+    MoonboardProtocolParser parser;
+    ProtocolMessage message;
+    for (char value : std::string("~Dl#S0,P35"))
+        TEST_ASSERT_FALSE(parser.feed(value, message));
+
+    std::vector<ProtocolMessage> messages;
+    for (char value : std::string("l#S1,E2#"))
+    {
+        if (parser.feed(value, message))
+            messages.push_back(message);
+    }
+
+    TEST_ASSERT_EQUAL_UINT32(1, messages.size());
+    TEST_ASSERT_TRUE(messages[0].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S1,E2", messages[0].payload.c_str());
+    TEST_ASSERT_FALSE(messages[0].additionalLight);
+}
+
+void test_parser_reset_discards_incomplete_compact_prefix()
+{
+    MoonboardProtocolParser parser;
+    ProtocolMessage message;
+    for (char value : std::string("~Dl#S0,P35"))
+        TEST_ASSERT_FALSE(parser.feed(value, message));
+
+    parser.reset();
+    std::vector<ProtocolMessage> messages;
+    for (char value : std::string("l#S1,E2#"))
+    {
+        if (parser.feed(value, message))
+            messages.push_back(message);
+    }
+
+    TEST_ASSERT_EQUAL_UINT32(1, messages.size());
+    TEST_ASSERT_TRUE(messages[0].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S1,E2", messages[0].payload.c_str());
+    TEST_ASSERT_FALSE(messages[0].additionalLight);
+}
+
+void test_parser_preserves_terminated_configuration_commands()
+{
+    MoonboardProtocolParser parser;
+    std::vector<ProtocolMessage> messages;
+    const std::string input = "~D*l#S0,E1#~Z*l#S2,E3#";
+
+    for (char value : input)
+    {
+        ProtocolMessage message;
+        if (parser.feed(value, message))
+            messages.push_back(message);
+    }
+
+    TEST_ASSERT_EQUAL_UINT32(4, messages.size());
+    TEST_ASSERT_TRUE(messages[0].type == ProtocolMessageType::Configuration);
+    TEST_ASSERT_EQUAL_STRING("~D*", messages[0].payload.c_str());
+    TEST_ASSERT_FALSE(messages[0].additionalLight);
+    TEST_ASSERT_TRUE(messages[1].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S0,E1", messages[1].payload.c_str());
+    TEST_ASSERT_FALSE(messages[1].additionalLight);
+    TEST_ASSERT_TRUE(messages[2].type == ProtocolMessageType::Configuration);
+    TEST_ASSERT_EQUAL_STRING("~Z*", messages[2].payload.c_str());
+    TEST_ASSERT_FALSE(messages[2].additionalLight);
+    TEST_ASSERT_TRUE(messages[3].type == ProtocolMessageType::Problem);
+    TEST_ASSERT_EQUAL_STRING("S2,E3", messages[3].payload.c_str());
+    TEST_ASSERT_FALSE(messages[3].additionalLight);
+}
+
 void test_parser_recovers_from_truncated_route_at_next_route_marker()
 {
     MoonboardProtocolParser parser;
@@ -372,6 +495,11 @@ int main(int argc, char **argv)
 {
     UNITY_BEGIN();
     RUN_TEST(test_parser_emits_configuration_and_problem);
+    RUN_TEST(test_parser_accepts_compact_additional_led_prefix);
+    RUN_TEST(test_parser_keeps_compact_prefix_across_ble_fragments);
+    RUN_TEST(test_parser_discards_compact_prefix_when_route_is_replaced);
+    RUN_TEST(test_parser_reset_discards_incomplete_compact_prefix);
+    RUN_TEST(test_parser_preserves_terminated_configuration_commands);
     RUN_TEST(test_parser_recovers_from_truncated_route_at_next_route_marker);
     RUN_TEST(test_parser_reset_discards_partial_ble_frame);
     RUN_TEST(test_problem_parser_accepts_known_hold_types);

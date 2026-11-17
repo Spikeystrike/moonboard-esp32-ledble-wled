@@ -27,6 +27,8 @@ that every unrelated LED remains dark.
 - Start, hand, foot, finish, left, right, and match-hold colors.
 - The app's `~D` option for an additional dim light above each hold. Route
   colors take precedence if that position is itself part of the route.
+  Both the full `~D,M*l#...#` form and Boardsesh's compact `~Dl#...#` form
+  are accepted.
 - The app's `~Z*` command for clearing every configured physical LED.
 - An optional list of non-MoonBoard LEDs that stays illuminated while a valid
   route is displayed.
@@ -101,7 +103,7 @@ automatic scrolling.
 
 All web pages use English by default. The flag button in the upper-right corner
 switches between English and German, and the choice is retained in the
-browser's local storage. The footer shows firmware version `1.4.0` and the
+browser's local storage. The footer shows firmware version `1.4.1` and the
 compile timestamp. The same information is available from `/api/config` and in
 the startup log, so the running version can be checked after an OTA restart.
 
